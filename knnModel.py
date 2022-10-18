@@ -6,10 +6,13 @@ from pyparsing import col
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report,confusion_matrix
+from sklearn import metrics
 from sklearn.model_selection import ShuffleSplit, cross_val_score
 from sklearn.feature_selection import chi2,SelectKBest,RFE,f_classif
+import warnings
 
+warnings.filterwarnings('ignore')
 
 
 def encodeData(train_df, test_df):
@@ -62,22 +65,44 @@ def buildKNNModel(df, targetColumn, metricsList, sampleSize):
     print(f"The average score on the model's predictive ability:{np.mean(results):.2%} with std:{np.std(results):.2%}")
 
     # getting the most important variable
-    selector=SelectKBest(score_func=f_classif)
-    selector_fitted=selector.fit(x_train, y_train)
-    print("Significant variables in modeling passenger survival: ",x_train.columns[selector_fitted.get_support()])
+    # selector=SelectKBest(score_func=f_classif)
+    # selector_fitted=selector.fit(x_train, y_train)
+    # print("Significant variables in modeling passenger survival: ",x_train.columns[selector_fitted.get_support()])
 
+    # confusion matrix
+    y_valid_pred=grid_search.predict(x_valid)
+    confu_mat= metrics.confusion_matrix(y_valid,y_valid_pred)
+    cm_obj=metrics.ConfusionMatrixDisplay(confu_mat,
+                                      #display_labels=randomforest.
+                                     )
+    plt.figure(figsize=(10,14))
+    plt.rcParams.update({'font.size':15})
+    cm_obj.plot()
+    cm_obj.ax_.set(title='Confusion matrix')
 
-
-
-
-
+    plt.show()
 
 def main():
     train_df =pd.read_csv("train_processed.csv")
     test_df =pd.read_csv("test_processed.csv")
     train_df, test_df = encodeData(train_df, test_df)
+    attributList = [
+        ['Fare', 'Sex_female', 'Sex_male'],
+        ['Fare', 'Pclass_1', 'Pclass_2', 'Pclass_3', 'Sex_female', 'Sex_male'],
+        ['Fare', 'Pclass_1', 'Pclass_2', 'Pclass_3', 'Sex_female', 'Sex_male', 'Embarked_C', 'Embarked_S'],
+        ['Fare', 'Pclass_1', 'Pclass_2', 'Pclass_3', 'Sex_female', 'Sex_male', 'Embarked_C', 'Embarked_S', 'Cabin_new_C', 'Cabin_new_F'],
+        # ['Age'], ['SibSp'], ['Parch'], ['Fare'], 
+        # ['Pclass_1', 'Pclass_2', 'Pclass_3'], 
+        # ['Sex_female', 'Sex_male'], 
+        # ['Embarked_C', 'Embarked_Q', 'Embarked_S'], 
+        # ['Cabin_new_A', 'Cabin_new_B', 'Cabin_new_C', 'Cabin_new_D', 'Cabin_new_E', 'Cabin_new_F', 'Cabin_new_G']
+        ]
     
-    buildKNNModel(train_df, "Survived", ['Age', 'SibSp', 'Parch', 'Fare', 'Pclass_1', 'Pclass_2', 'Pclass_3', 'Sex_female', 'Sex_male', 'Embarked_C', 'Embarked_Q', 'Embarked_S', 'Cabin_new_A', 'Cabin_new_B', 'Cabin_new_C', 'Cabin_new_D', 'Cabin_new_E', 'Cabin_new_F', 'Cabin_new_G'], 0.1)
+
+    for attributSet in attributList:
+        print("running model for attribut set : "+  str(attributSet ))
+        # buildKNNModel(train_df, "Survived", ['Age', 'SibSp', 'Parch', 'Fare', 'Pclass_1', 'Pclass_2', 'Pclass_3', 'Sex_female', 'Sex_male', 'Embarked_C', 'Embarked_Q', 'Embarked_S', 'Cabin_new_A', 'Cabin_new_B', 'Cabin_new_C', 'Cabin_new_D', 'Cabin_new_E', 'Cabin_new_F', 'Cabin_new_G'], 0.1)
+        buildKNNModel(train_df, "Survived", attributSet , 0.1)
 
 
 
