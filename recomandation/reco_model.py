@@ -69,6 +69,7 @@ def transformData(ratings_explicit):
 
 def simpleRecoSystem(books, users, ratings, userID = "none"):
     ratings_explicit = ratings[ratings.bookRating != 0]
+    ratings_explicit.to_csv("test.csv", sep=",", index=False)
     if not os.path.isfile("book_reco.csv"):
         
         books_ratings = {"ISBN":  [], "title":[], "nb_vote":[], "meanRating":[], "author":[], "publisher":[]}
@@ -87,10 +88,14 @@ def simpleRecoSystem(books, users, ratings, userID = "none"):
         recoDf = pd.read_csv("book_reco.csv")
     m = recoDf.nb_vote.quantile(0.90)
     avalableReco = recoDf[recoDf.nb_vote >= m]
-    avalableReco = avalableReco.assign(score = (avalableReco.nb_vote/(avalableReco.nb_vote+m) * avalableReco.nb_vote.mean()) + (m/(m+avalableReco.nb_vote) * avalableReco.meanRating))
-    if userID != "none" and userID in ratings_explicit.userID.tolist():
+    avalableReco = avalableReco.assign(score = (avalableReco.nb_vote/(avalableReco.nb_vote+m) * avalableReco.nb_vote.mean()) + (m/(m + avalableReco.nb_vote) * avalableReco.meanRating))
+    # if userID != "none" and userID in ratings_explicit.userID.tolist():
+    if userID != "none":
         userBooks = ratings_explicit[ratings_explicit.userID == userID].ISBN.unique().tolist()
-        avalableReco = avalableReco[avalableReco.ISN.isin(userBooks)]
+        print(userBooks)
+        print(len(avalableReco))
+        avalableReco = avalableReco[~avalableReco.ISBN.isin(userBooks)]
+        print(len(avalableReco))
     finalReco = avalableReco.sort_values('score', ascending=False)
     print(finalReco [["title", "meanRating", "score"]].head(15))
     
@@ -101,9 +106,6 @@ def simpleRecoSystem(books, users, ratings, userID = "none"):
     
 def svmModel(data):
     trainset, testset = train_test_split(data, test_size=.20)
-    # data= data.set_index("userID")
-    # trainset= trainset.set_index("userID")
-    # testset= testset.set_index("userID")
     svd_model = SVD(n_factors=5)
     svd_model.fit(trainset)
     test_pred = svd_model.test(testset)
@@ -122,8 +124,7 @@ def knnMeansModel(data):
         'name': ['msd', 'cosine'],
         'min_support': [1, 5],
         'user_based': [False],
-    },
-}
+    },}
     gs = GridSearchCV(KNNWithMeans, param_grid, measures=["rmse", "mae"], cv=30)
     gs.fit(trainset)
     algo = gs.best_estimator["rmse"]
@@ -138,8 +139,9 @@ def knnMeansModel(data):
 def main():
     books, users, ratings, ratings_new, ratings_explicit, ratings_implicit = loadData()
     data = transformData(ratings_explicit)
-    simpleRecoSystem(books, users, ratings_new, userID = "276768")
-    svmModel(data)
-    knnMeansModel(data)
+    # simpleRecoSystem(books, users, ratings_new)
+    simpleRecoSystem(books, users, ratings_new, userID = 44842)
+    # svmModel(data)
+    # knnMeansModel(data)
 if __name__ == '__main__':
     main()
